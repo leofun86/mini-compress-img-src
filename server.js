@@ -26,7 +26,7 @@ app.set("trust proxy", 1);
 app.use(
   cors({
     origin: [
-      "https://leanfunes.github.io", // ⚠️ ← cambia esto por tu dominio real de GitHub Pages
+      "https://leofun86.github.io/", // ⚠️ ← cambia esto por tu dominio real de GitHub Pages
       "https://mini-compress-img-src.onrender.com"
     ],
     methods: ["GET", "POST"],
