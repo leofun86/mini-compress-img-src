@@ -22,35 +22,29 @@ const PORT = process.env.PORT || 8080;
 // 🧩 Render proxy configuration
 app.set("trust proxy", 1);
 
-// 🌍 CORS (permitir frontend desde GitHub Pages y tu dominio Render)
-app.use(
-  cors({
-    origin: [
-      "https://leofun86.github.io/", // ⚠️ ← cambia esto por tu dominio real de GitHub Pages
-      "https://mini-compress-img-src.onrender.com"
-    ],
-    methods: ["GET", "POST"],
-    allowedHeaders: ["Content-Type"]
-  })
-);
+// ✅ CORS CONFIG: permitir tu dominio de GitHub Pages
+app.use(cors({
+  origin: "https://leofun86.github.io",
+  methods: ["GET", "POST"],
+  allowedHeaders: ["Content-Type"],
+  optionsSuccessStatus: 200
+}));
 
 // 🛡️ Seguridad general
 app.disable("x-powered-by");
-app.use(
-  helmet({
-    contentSecurityPolicy: {
-      useDefaults: true,
-      directives: {
-        "default-src": ["'self'"],
-        "img-src": ["'self'", "data:"],
-        "style-src": ["'self'", "'unsafe-inline'"],
-        "script-src": ["'self'", "'unsafe-inline'"],
-        "connect-src": ["'self'", "https://mini-compress-img-src.onrender.com"]
-      }
-    },
-    crossOriginEmbedderPolicy: false
-  })
-);
+app.use(helmet({
+  contentSecurityPolicy: {
+    useDefaults: true,
+    directives: {
+      "default-src": ["'self'"],
+      "img-src": ["'self'", "data:"],
+      "style-src": ["'self'", "'unsafe-inline'"],
+      "script-src": ["'self'", "'unsafe-inline'"],
+      "connect-src": ["'self'", "https://mini-compress-img-src.onrender.com"]
+    }
+  },
+  crossOriginEmbedderPolicy: false
+}));
 app.use(compression());
 app.use(express.json({ limit: "2mb" }));
 app.use(express.urlencoded({ extended: true, limit: "2mb" }));
@@ -64,7 +58,7 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
-// 📁 Rutas de archivos
+// 📁 Directorios
 const DIST = path.join(__dirname, "dist");
 const DOWNLOADS = path.join(DIST, "downloads");
 fs.mkdirSync(DOWNLOADS, { recursive: true });
@@ -81,7 +75,7 @@ const upload = multer({
   }
 });
 
-// 🧠 Verificación de firma real del archivo
+// 🧠 Validación MIME real
 async function validateMagic(buffer) {
   const ft = await fileTypeFromBuffer(buffer);
   if (!ft) return null;
@@ -159,13 +153,11 @@ app.post("/api/compress", upload.single("file"), async (req, res) => {
   }
 });
 
-// 🧩 Endpoint para generar ZIP
+// 🧩 Endpoint ZIP
 app.post("/api/zip", async (req, res) => {
   try {
     let body = "";
-    req.on("data", chunk => {
-      body += chunk;
-    });
+    req.on("data", chunk => (body += chunk));
     req.on("end", () => {
       try {
         const parsed = JSON.parse(body || "{}");
@@ -187,7 +179,6 @@ app.post("/api/zip", async (req, res) => {
         }
 
         archive.finalize();
-
         output.on("close", () => {
           res.json({ ok: true, zip: `/downloads/${zipName}`, size: archive.pointer() });
         });
@@ -201,18 +192,18 @@ app.post("/api/zip", async (req, res) => {
   }
 });
 
-// 🎯 Fallback para el frontend
+// 🎯 Fallback frontend
 app.get("*", (req, res) => {
   res.sendFile(path.join(DIST, "index.html"));
 });
 
-// 🛡️ Manejo de errores global
+// 🛡️ Error handler global
 app.use((err, req, res, next) => {
   console.error("Unhandled error:", err);
   res.status(500).send("Error interno del servidor.");
 });
 
-// 🚀 Iniciar servidor
+// 🚀 Start
 app.listen(PORT, () => {
   console.log(`🔐 Servidor activo en Render (puerto ${PORT})`);
 });
